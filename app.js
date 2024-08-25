@@ -90,7 +90,31 @@ app.get('/barang', isAuthenticated, (req, res) => {
   });
 });
 
-// Read (GET berdasarkan ID)
+app.get('/barang/search', isAuthenticated, (req, res) => {
+  const searchTerm = req.query.searchTerm;
+
+  if (!searchTerm) {
+    return res.redirect('/barang');
+  }
+
+  const query = 'SELECT * FROM barang WHERE name LIKE ?';
+  
+  connection.query(query, [`%${searchTerm}%`], (err, results) => {
+    if (err) {
+      console.error('Error saat mencari data: ', err);
+      return res.status(500).send('Error saat mencari data');
+    }
+
+    if (results.length === 0) {
+      console.log('Tidak ada hasil yang ditemukan');
+      return res.render("index", { users: [], title: "Hasil Pencarian - Tidak Ditemukan" });
+    }
+
+    res.render("index", { users: results, title: "Hasil Pencarian" });
+  });
+});
+
+// Rute dengan parameter :id
 app.get('/barang/:id', (req, res) => {
   const { id } = req.params;
   
@@ -109,6 +133,11 @@ app.get('/barang/:id', (req, res) => {
     res.json(results[0]);
   });
 });
+
+
+
+
+
 
 // Update (PUT)
 app.put('/barang/:id', (req, res) => {
