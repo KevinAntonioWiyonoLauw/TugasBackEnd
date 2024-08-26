@@ -25,6 +25,14 @@ app.use(session({
     }
 }));
 
+// Middleware untuk mengarahkan ke /login jika belum terautentikasi
+app.use((req, res, next) => {
+    if (!req.session.isAuthenticated && req.path !== '/login') {
+        return res.redirect('/login');
+    }
+    next();
+});
+
 // Login Route
 app.route('/login')
     .get((req, res) => {
