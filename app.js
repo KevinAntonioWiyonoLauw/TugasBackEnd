@@ -1,27 +1,27 @@
+require('dotenv').config();
 const express = require('express');
-const connection = require('./db');
+const session = require('express-session');
 const bodyParser = require('body-parser');
 const methodOverride = require('method-override');
-const {
-    isAuthenticated
-} = require('./middleware');
-const session = require('express-session');
+const { isAuthenticated } = require('./middleware');
+const helmet = require('helmet');
+const connection = require('./db'); // Import koneksi MySQL
 const app = express();
 
-app.use(bodyParser.urlencoded({
-    extended: true
-}));
+app.use(helmet());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(methodOverride('_method'));
 app.set("view engine", "ejs");
 app.set("views", "views");
 
 app.use(session({
-    secret: '12345678',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: {
-        secure: false
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true
     }
 }));
 
@@ -36,15 +36,10 @@ app.use((req, res, next) => {
 // Login Route
 app.route('/login')
     .get((req, res) => {
-        res.render('login', {
-            title: "Login"
-        });
+        res.render('login', { title: "Login" });
     })
     .post((req, res) => {
-        const {
-            username,
-            password
-        } = req.body;
+        const { username, password } = req.body;
 
         if (username === 'admin' && password === 'admin') {
             req.session.isAuthenticated = true;
@@ -63,10 +58,7 @@ app.get('/logout', (req, res) => {
 
 // Route untuk Create (POST)
 app.post('/barang', (req, res) => {
-    const {
-        name,
-        description
-    } = req.body;
+    const { name, description } = req.body;
     const query = 'INSERT INTO barang (name, description) VALUES (?, ?)';
 
     connection.query(query, [name, description], (err, results) => {
@@ -86,13 +78,10 @@ app.post('/barang', (req, res) => {
 
 // Route untuk Create di Website (POST)
 app.post('/tambah', (req, res) => {
-    const {
-        name,
-        description
-    } = req.body;
-    const query = `INSERT INTO barang (name, description) VALUES ('${req.body.nama}', '${req.body.deskripsi}');`
+    const { nama, deskripsi } = req.body;
+    const query = 'INSERT INTO barang (name, description) VALUES (?, ?)';
 
-    connection.query(query, [name, description], (err, results) => {
+    connection.query(query, [nama, deskripsi], (err, results) => {
         if (err) {
             console.error('Error saat memasukkan data: ', err);
             return res.status(500).send(err);
@@ -154,9 +143,7 @@ app.get('/barang/search', isAuthenticated, (req, res) => {
 
 // Rute dengan parameter :id
 app.get('/barang/:id', (req, res) => {
-    const {
-        id
-    } = req.params;
+    const { id } = req.params;
 
     connection.query('SELECT * FROM barang WHERE id = ?', [id], (err, results) => {
         if (err) {
@@ -176,13 +163,8 @@ app.get('/barang/:id', (req, res) => {
 
 // Update (PUT)
 app.put('/barang/:id', (req, res) => {
-    const {
-        id
-    } = req.params;
-    const {
-        name,
-        description
-    } = req.body;
+    const { id } = req.params;
+    const { name, description } = req.body;
     const query = 'UPDATE barang SET name = ?, description = ? WHERE id = ?';
 
     connection.query(query, [name, description, id], (err, results) => {
@@ -197,17 +179,13 @@ app.put('/barang/:id', (req, res) => {
         }
 
         console.log(`Updated item with ID: ${id}, New Name: ${name}`);
-        res.json({
-            message: 'Item updated successfully'
-        });
+        res.json({ message: 'Item updated successfully' });
     });
 });
 
 // Delete (DELETE)
 app.delete('/barang/:id', (req, res) => {
-    const {
-        id
-    } = req.params;
+    const { id } = req.params;
 
     connection.query('DELETE FROM barang WHERE id = ?', [id], (err, results) => {
         if (err) {
