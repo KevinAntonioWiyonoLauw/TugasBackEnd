@@ -61,6 +61,12 @@ app.get('/logout', (req, res) => {
     res.redirect('/login');
 });
 
+// Redirect root to login page
+app.get('/', (req, res) => {
+    res.redirect('/login');
+});
+
+
 // Route untuk Create (POST)
 app.post('/barang', (req, res) => {
     const {
